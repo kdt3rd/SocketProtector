@@ -1,0 +1,46 @@
+
+rule mkdir
+  command = mkdir $out
+  description = MKDIR ($out)
+
+rule cpp
+  command = $CXX $CFLAGS $CXXFLAGS $DEFS $WARN $INC $SYSINC -MMD -MF $out.d -o $out -c $in
+  description = CXX ($in)
+  depfile = $out.d
+
+rule lib
+  command = rm -f $out ; $AR $ARFLAGS cur $out $in
+  description = AR ($out)
+
+rule exe
+  command = $LD $RPATH $LDFLAGS $in -o $out
+  description = LINK ($out)
+
+CXXFLAGS = -O3 -std=c++11 -stdlib=libc++
+LD = /usr/bin/clang++
+CC = /usr/bin/clang
+WARN = -Weverything -Wno-c++98-compat -Wno-vla
+CXX = /usr/bin/clang++
+AR = /usr/bin/ar
+LDFLAGS = -lc++
+INC =
+
+build Build: mkdir
+build Build/Daemon.o: cpp src/Daemon.cpp
+build Build/SocketServer.o: cpp src/SocketServer.cpp
+build Build/main.o: cpp src/main.cpp
+
+build Build/SocketProtector: exe Build/SocketServer.o Build/Daemon.o Build/main.o
+build SocketProtector: phony Build/SocketProtector
+
+build Build/SocketProtector.o: cpp lib/SocketProtector.cpp
+build Build/libSocketProtector.a: lib Build/SocketProtector.o
+build libSocketProtector.a: phony Build/libSocketProtector.a
+
+build Build/sample_client.o: cpp sample/sample_client.cpp
+  INC = -Ilib
+build Build/SampleClient: exe Build/sample_client.o | Build/libSocketProtector.a
+  LDFLAGS = -LBuild -lSocketProtector $LDFLAGS
+build SampleClient: phony Build/SampleClient
+
+default SocketProtector libSocketProtector.a SampleClient
