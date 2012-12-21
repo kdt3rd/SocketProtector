@@ -26,13 +26,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <syslog.h>
+#include <stdlib.h>
 
 static SocketProtector *globPtr = NULL;
 
 static void
 handleTerm( int )
 {
-	printf( "SIGTERM\n" );
+	syslog( LOG_DEBUG, "received SIGTERM" );
 	if ( globPtr )
 		globPtr->terminate();
 }
@@ -40,7 +41,7 @@ handleTerm( int )
 static void
 handleInt( int )
 {
-	printf( "SIGINT\n" );
+	syslog( LOG_DEBUG, "received SIGINT" );
 	if ( globPtr )
 		globPtr->terminate();
 }
@@ -48,9 +49,9 @@ handleInt( int )
 int
 main( int argc, char *argv[] )
 {
-	if ( argc < 2 )
+	if ( argc < 2 || argc > 3 )
 	{
-		std::cerr << "Usage: sample_client <port>" << std::endl;
+		std::cerr << "Usage: sample_client <port> [<startuppause>]" << std::endl;
 		return -1;
 	}
 	long port = strtol( argv[1], NULL, 10 );
@@ -59,18 +60,28 @@ main( int argc, char *argv[] )
 		std::cerr << "invalid port specification: " << argv[1] << std::endl;
 		return -1;
 	}
+	long wait = 0;
+	if ( argc > 2 )
+	{
+		wait = strtol( argv[2], NULL, 10 );
+	}
 	std::cout << "Starting client up on port " << port << std::endl;
-
-	signal( SIGTERM, &handleTerm );
-	signal( SIGINT, &handleInt );
 
 	openlog( "sockprot_client", LOG_PID | LOG_NOWAIT | LOG_CONS | LOG_PERROR, LOG_DAEMON );
 	( void )setlogmask( LOG_UPTO( LOG_DEBUG ) );
 
-	std::cout << "Sleeping for 5 seconds to enable sending a message prior to client being ready..." << std::endl;
-	sleep( 5 );
-	std::cout << "And we're back..." << std::endl;
+	if ( wait > 0 )
+	{
+		std::cout << "Sleeping for " << wait << " seconds to enable sending a message prior to client being ready..." << std::endl;
+		sleep( wait );
+		std::cout << "Starting up now..." << std::endl;
+	}
 	
+	signal( SIGTERM, &handleTerm );
+	signal( SIGQUIT, &handleTerm );
+	signal( SIGHUP, &handleTerm );
+	signal( SIGINT, &handleInt );
+
 	SocketProtector pt( static_cast<uint16_t>( port ) );
 	globPtr = &pt;
 
@@ -82,7 +93,11 @@ main( int argc, char *argv[] )
 		int sock = pt.accept();
 
 		if ( sock == -1 )
+		{
+			syslog( LOG_INFO, "Got indication we're supposed to go away" );
+			pt.terminate();
 			break;
+		}
 
 		std::cout << "\nnew connection: " << sock << std::endl;
 		do

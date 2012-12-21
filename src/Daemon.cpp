@@ -82,37 +82,6 @@ closeFileDescriptors( int startFD )
 ////////////////////////////////////////
 
 
-void
-background( const std::function<void (void)> &waitStart )
-{
-	pid_t pid = fork();
-
-	if ( pid < 0 )
-	{
-		syslog( LOG_CRIT, "Unable to fork process" );
-	}
-	else if ( pid != 0 )
-	{
-		// wait for child to beome active
-		if ( waitStart )
-			waitStart();
-
-		// we're done and child is detached in theory
-		exit( 0 );
-	}
-
-	// Become the session leader
-	pid_t sid = setsid();
-	if ( sid < 0 )
-	{
-		syslog( LOG_CRIT, "Unable to become session leader" );
-	}
-}
-
-
-////////////////////////////////////////
-
-
 } // namespace Daemon
 
 

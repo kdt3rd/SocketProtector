@@ -238,8 +238,8 @@ main( int argc, char *argv[] )
 	// wrong. so set up a named semaphore to wait on that in the
 	// main thread, although we only need to do that in the case where
 	// we are going to detach
-	std::unique_ptr<Semaphore> startup;
-	std::unique_ptr<SocketServer> servPtr;
+	std::auto_ptr<Semaphore> startup;
+	std::auto_ptr<SocketServer> servPtr;
 
 	try
 	{
@@ -249,7 +249,28 @@ main( int argc, char *argv[] )
 			name << "SocketProtector" << getpid();
 			startup.reset( new Semaphore( name.str() ) );
 
-			Daemon::background( std::bind( &Semaphore::wait, startup.get() ) );
+			pid_t detpid = fork();
+			if ( detpid < 0 )
+			{
+				syslog( LOG_CRIT, "Unable to fork detached process" );
+			}
+
+			if ( detpid != 0 )
+			{
+				// wait for child to become active
+				startup->wait();
+
+				// child is up...
+				// PARENT EXIT
+				exit( 0 );
+			}
+
+			// this is now the child process, become session leader to
+			// truly detach
+			pid_t sid = setsid();
+			if ( sid < 0 )
+				syslog( LOG_CRIT, "Unable to become session leader" );
+
 			Daemon::closeFileDescriptors();
 		}
 		else
@@ -278,7 +299,7 @@ main( int argc, char *argv[] )
 		// ok, we're at a point where we are going to run, so
 		// let the parent process know so it can continue allowing us
 		// to detach...
-		if ( startup )
+		if ( startup.get() != NULL )
 		{
 			startup->post();
 			startup.reset();
@@ -303,7 +324,7 @@ main( int argc, char *argv[] )
 	}
 
 	// failsafe in case we got an exception...
-	if ( startup )
+	if ( startup.get() != NULL )
 		startup->post();
 
 	return 0;

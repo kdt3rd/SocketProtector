@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <syslog.h>
 #include <stdexcept>
+#include <errno.h>
 
 
 ////////////////////////////////////////

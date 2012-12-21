@@ -32,6 +32,7 @@
 #include <stdexcept>
 #include <memory>
 #include <string>
+#include <sstream>
 
 
 ////////////////////////////////////////
@@ -68,12 +69,15 @@ struct SocketProtectorImpl
 		memset( &local, 0, sizeof(local) );
 		local.sun_family = PF_UNIX;
 
-#ifdef __linux__
+		std::stringstream pBuf;
 		// linux has abstract sockets that don't need unlinking
-		std::string pName = "sock_srv_" + std::to_string( port );
+#ifdef __linux__
+		pBuf << "sock_srv_" << port;
+		std::string pName = pBuf.str();
 		strncpy( local.sun_path + 1, pName.c_str(), std::min( pName.size(), sizeof(local.sun_path) - 2 ) );
 #else
-		std::string pName = "/tmp/sock_srv_" + std::to_string( port );
+		pBuf << "/tmp/sock_srv_" << port;
+		std::string pName = pBuf.str();
 		strncpy( local.sun_path, pName.c_str(), std::min( pName.size(), sizeof(local.sun_path) - 1 ) );
 #endif
 #ifdef __APPLE__
@@ -223,7 +227,8 @@ struct SocketProtectorImpl
 			return -1;
 		}
 
-		return *( reinterpret_cast<int *>( CMSG_DATA( cmsg ) ) );
+		int *fd = reinterpret_cast<int *>( CMSG_DATA( cmsg ) );
+		return *fd;
 	}
 };
 
@@ -238,7 +243,7 @@ socket_protector_create( uint16_t serverport )
 {
 	try
 	{
-		std::unique_ptr<SocketProtectorImpl> tmp( new SocketProtectorImpl( serverport ) );
+		std::auto_ptr<SocketProtectorImpl> tmp( new SocketProtectorImpl( serverport ) );
 		return reinterpret_cast<PrivSocketProtector *>( tmp.release() );
 	}
 	catch ( const std::exception &e )

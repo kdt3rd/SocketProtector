@@ -28,6 +28,7 @@
 #include <deque>
 #include <memory>
 #include <sys/un.h>
+#include <stdint.h>
 
 
 ////////////////////////////////////////
@@ -84,9 +85,9 @@ private:
 	int myTCPSocket;
 	int myTriggerPipe[2];
 	int myUnixSocket;
+	std::string myUnixSockPath;
 
 	std::vector<std::string> myCmdLine;
-	std::unique_ptr<char *[]> myArgv;
 	int myConnectedDaemon;
 
 	pid_t myLastPID;
@@ -95,7 +96,6 @@ private:
 	struct timeval myLastStartTime;
 	int myRespawnCount;
 
-	struct sockaddr_un myUnixSockAddr;
 	uint16_t myTCPPort;
 	bool myTerminated;
 };

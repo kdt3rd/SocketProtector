@@ -13,16 +13,16 @@ rule lib
   description = AR ($out)
 
 rule exe
-  command = $LD $RPATH $LDFLAGS $in -o $out
+  command = $LD $RPATH $LDFLAGS $in -o $out $LINK $SYSLINK
   description = LINK ($out)
 
-CXXFLAGS = -O3 -std=c++11 -stdlib=libc++
-LD = /usr/bin/clang++
-CC = /usr/bin/clang
-WARN = -Weverything -Wno-c++98-compat -Wno-vla
-CXX = /usr/bin/clang++
+CXXFLAGS = -fPIC -O3
+LD = /usr/bin/g++
+CC = /usr/bin/gcc
+WARN = -Wall
+CXX = /usr/bin/g++
 AR = /usr/bin/ar
-LDFLAGS = -lc++
+SYSLINK = -lpthread
 INC =
 
 build Build: mkdir
@@ -40,7 +40,7 @@ build libSocketProtector.a: phony Build/libSocketProtector.a
 build Build/sample_client.o: cpp sample/sample_client.cpp
   INC = -Ilib
 build Build/SampleClient: exe Build/sample_client.o | Build/libSocketProtector.a
-  LDFLAGS = -LBuild -lSocketProtector $LDFLAGS
+  LINK = -LBuild -lSocketProtector $LINK
 build SampleClient: phony Build/SampleClient
 
 default SocketProtector libSocketProtector.a SampleClient

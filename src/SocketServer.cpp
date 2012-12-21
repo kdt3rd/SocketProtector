@@ -39,6 +39,7 @@
 #include "Daemon.h"
 
 #include <iostream>
+#include <sstream>
 
 
 ////////////////////////////////////////
@@ -56,6 +57,15 @@ SocketServer::SocketServer( const std::vector<std::string> &subDaemonCommands, u
 		myTriggerPipe[1] = -1;
 		throw std::runtime_error( "Unable to initialize pipe for controlling run loop" );
 	}
+
+	std::stringstream path;
+#ifdef __linux__
+	// we will use abstract name
+	path << "sock_srv_" << port;
+#else
+	path << "/tmp/sock_srv_" << port;
+#endif
+	myUnixSockPath = path.str();
 }
 
 
@@ -205,10 +215,33 @@ SocketServer::run( int retryCount, int retryPauseSec, int backlogSize )
 	myLastPID = -1;
 	if ( ! myChildList.empty() )
 	{
-		for ( auto i = myChildList.begin(); i != myChildList.end(); ++i )
-			kill( (*i), SIGTERM );
-	}
+		size_t N = myChildList.size();
+		size_t nLeft = N;
+		for ( size_t i = 0; i != nLeft; ++i )
+		{
+			syslog( LOG_DEBUG, "Sending kill signal to pid %d", int(myChildList[i]) );
+			int rv = kill( myChildList[i], SIGTERM );
+			if ( rv == -1 )
+			{
+				syslog( LOG_ERR, "kill signal to pid %d failed: %s", int(myChildList[i]), strerror( errno ) );
+				--nLeft;
+			}
+		}
 
+		myChildList.clear();
+		while ( nLeft > 0 )
+		{
+			int status = 0;
+			pid_t cpid = waitpid( -1, &status, 0 );
+			if ( cpid < 0 )
+			{
+				syslog( LOG_DEBUG, "error waiting for sub daemons to exit: %s", strerror( errno ) );
+				break;
+			}
+			syslog( LOG_DEBUG, "Child pid %d exited", int(cpid) );
+			--nLeft;
+		}
+	}
 }
 
 
@@ -260,7 +293,7 @@ SocketServer::acceptChild( void )
 	close( myUnixSocket );
 	myUnixSocket = -1;
 #ifndef __linux__
-	if ( unlink( myUnixSockAddr.sun_path ) == -1 )
+	if ( unlink( myUnixSockPath.c_str() ) == -1 )
 	{
 		if ( errno != ENOENT )
 			throw std::runtime_error( strerror( errno ) );
@@ -302,8 +335,8 @@ SocketServer::sendSocket( int fd )
 	vec.iov_base = buf;
 	vec.iov_len = 1;
 
-	msg.msg_name = NULL;//(struct sockaddr*)&myUnixSockAddr;
-	msg.msg_namelen = 0;//sizeof(myUnixSockAddr);
+	msg.msg_name = NULL;
+	msg.msg_namelen = 0;
 	msg.msg_iov = &vec;
 	msg.msg_iovlen = 1;
 	msg.msg_control = ccmsg;
@@ -515,15 +548,11 @@ SocketServer::respawnChild( void )
 	syslog( LOG_NOTICE, "Respawning child process..." );
 	restartUnixSocket();
 
-	if ( ! myArgv )
-	{
-		size_t N = myCmdLine.size();
-		myArgv.reset( new char *[N + 1] );
-		char **data = myArgv.get();
-		for ( size_t i = 0; i != N; ++i )
-			data[i] = const_cast<char *>( myCmdLine[i].c_str() );
-		myArgv[N] = nullptr;
-	}
+	size_t N = myCmdLine.size();
+	char *argdata[N + 1];
+	for ( size_t i = 0; i != N; ++i )
+		argdata[i] = const_cast<char *>( myCmdLine[i].c_str() );
+	argdata[N] = NULL;
 
 	myLastPID = -1;
 	pid_t pid = fork();
@@ -539,7 +568,7 @@ SocketServer::respawnChild( void )
 		//child process, exec off the command
 		// first close any extra open descriptors
 		Daemon::closeFileDescriptors( 3 );
-		execvp( myArgv[0], myArgv.get() );
+		execvp( argdata[0], argdata );
 		_exit( -1 );
 	}
 
@@ -578,11 +607,11 @@ SocketServer::handleChildEvent( void )
 		return;
 	}
 
-	for ( auto i = myChildList.begin(); i != myChildList.end(); ++i )
+	for ( size_t i = 0, N = myChildList.size(); i != N; ++i )
 	{
-		if ( (*i) == cpid )
+		if ( myChildList[i] == cpid )
 		{
-			myChildList.erase( i );
+			myChildList.erase( myChildList.begin() + i );
 			break;
 		}
 	}
@@ -595,6 +624,12 @@ SocketServer::handleChildEvent( void )
 			myConnectedDaemon = -1;
 		}
 		myLastPID = -1;
+
+		if ( ! myTerminated )
+		{
+			syslog( LOG_INFO, "Respawning child process after unexpected exit" );
+			respawnChild();
+		}
 	}
 }
 
@@ -621,17 +656,16 @@ SocketServer::restartUnixSocket( void )
 	if ( myUnixSocket < 0 )
 		throw std::runtime_error( "Unable to create UNIX socket" );
 
-	memset( &myUnixSockAddr, 0, sizeof(myUnixSockAddr) );
-	myUnixSockAddr.sun_family = PF_UNIX;
+	struct sockaddr_un local;
+	memset( &local, 0, sizeof(local) );
+	local.sun_family = PF_UNIX;
 
 #ifdef __linux__
 	// linux has abstract sockets that don't need unlinking
-	std::string pName = "sock_srv_" + std::to_string( myTCPPort );
-	strncpy( myUnixSockAddr.sun_path + 1, pName.c_str(), std::min( pName.size(), sizeof(myUnixSockAddr.sun_path) - 2 ) );
+	strncpy( local.sun_path + 1, myUnixSockPath.c_str(), std::min( myUnixSockPath.size(), sizeof(local.sun_path) - 2 ) );
 #else
-	std::string pName = "/tmp/sock_srv_" + std::to_string( myTCPPort );
-	strncpy( myUnixSockAddr.sun_path, pName.c_str(), std::min( pName.size(), sizeof(myUnixSockAddr.sun_path) - 1 ) );
-	if ( unlink( myUnixSockAddr.sun_path ) == -1 )
+	strncpy( local.sun_path, myUnixSockPath.c_str(), std::min( myUnixSockPath.size(), sizeof(local.sun_path) - 1 ) );
+	if ( unlink( myUnixSockPath.c_str() ) == -1 )
 	{
 		if ( errno != ENOENT )
 			throw std::runtime_error( "unable to remove socket path" );
@@ -639,10 +673,10 @@ SocketServer::restartUnixSocket( void )
 #endif
 
 #ifdef __APPLE__
-	myUnixSockAddr.sun_len = static_cast<decltype(myUnixSockAddr.sun_len)>( SUN_LEN( &myUnixSockAddr ) );
+	local.sun_len = SUN_LEN( &local );
 #endif
 
-	if ( bind( myUnixSocket, (struct sockaddr *)&myUnixSockAddr, sizeof(myUnixSockAddr) ) == -1 )
+	if ( bind( myUnixSocket, (struct sockaddr *)&local, sizeof(local) ) == -1 )
 		throw std::runtime_error( std::string( "Unable to bind local unix socket: " ) + strerror( errno ) );
 
 	if ( listen( myUnixSocket, 1 ) == -1 )

@@ -22,8 +22,6 @@
 
 #pragma once
 
-#include <functional>
-
 
 ////////////////////////////////////////
 
@@ -32,7 +30,6 @@ namespace Daemon
 {
 
 void closeFileDescriptors( int startFD = 0 );
-void background( const std::function<void (void)> &waitStart );
 
 } // namespace Daemon
 
