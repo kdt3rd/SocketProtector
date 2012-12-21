@@ -146,20 +146,22 @@ struct SocketProtectorImpl
 			if ( FD_ISSET( myTermPipe[0], &fds ) )
 			{
 				char b = '\0';
-				if ( read( myTermPipe[0], &b, sizeof(char) ) == 1 )
+				do
 				{
-					// don't actually care what's in the pipe, we're done
-					break;
-				}
-				else if ( errno == EINTR )
-				{
-					continue;
-				}
-				else
-				{
+					if ( read( myTermPipe[0], &b, sizeof(char) ) == 1 )
+					{
+						syslog( LOG_DEBUG, "Internal signal got '%c' message", b );
+						// don't actually care what's in the pipe, we're done, but set
+						// the flag again just in case
+						myTerminated = true;
+						break;
+					}
+
+					if ( errno == EINTR )
+						continue;
+
 					syslog( LOG_ERR, "error communicating on internal terminate channel: %s", strerror( errno ) );
-					break;
-				}
+				} while ( false );
 			}
 
 			if ( FD_ISSET( myServerConnection, &fds ) )
