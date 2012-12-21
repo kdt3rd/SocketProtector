@@ -302,8 +302,8 @@ SocketServer::sendSocket( int fd )
 	vec.iov_base = buf;
 	vec.iov_len = 1;
 
-	msg.msg_name = (struct sockaddr*)&myUnixSockAddr;
-	msg.msg_namelen = sizeof(myUnixSockAddr);
+	msg.msg_name = NULL;//(struct sockaddr*)&myUnixSockAddr;
+	msg.msg_namelen = 0;//sizeof(myUnixSockAddr);
 	msg.msg_iov = &vec;
 	msg.msg_iovlen = 1;
 	msg.msg_control = ccmsg;
