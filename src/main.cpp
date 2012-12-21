@@ -15,12 +15,65 @@
 #include <syslog.h>
 #include <iostream>
 #include <vector>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 
 ////////////////////////////////////////
 
 
 namespace {
+
+std::string
+fixPath( const std::string &cmd )
+{
+	std::string retval;
+
+	if ( cmd[0] == '~' )
+	{
+		long bufV = sysconf( _SC_GETPW_R_SIZE_MAX );
+		if ( bufV == -1 )
+			bufV = 4096;
+
+		size_t bufSz = static_cast<size_t>( bufV );
+		char tmpBuf[bufSz];
+		struct passwd pwd, *result = NULL;
+		if ( getpwuid_r( getuid(), &pwd, tmpBuf, bufSz, &result ) != 0 || result == NULL )
+		{
+			const char *h = getenv( "HOME" );
+			if ( ! h )
+				return cmd;
+
+			retval = std::string( h ) + '/' + cmd;
+		}
+		else
+			retval = std::string( pwd.pw_dir ) + '/' + cmd;
+	}
+	else
+	{
+		char *cd = getcwd( NULL, 0 );
+		if ( cd )
+		{
+			retval = std::string( cd ) + '/' + cmd;
+			free( cd );
+		}
+		else
+			retval = cmd;
+	}
+
+	if ( access( retval.c_str(), X_OK ) == -1 )
+	{
+		syslog( LOG_DEBUG, "Assuming command is in path" );
+		return cmd;
+	}
+	else
+	{
+		syslog( LOG_DEBUG, "Transformed relative path to '%s'. Specify full path if not correct", retval.c_str() );
+	}
+	return retval;
+}
+
 
 SocketServer *theSocketServer = NULL;
 
@@ -111,7 +164,7 @@ main( int argc, char *argv[] )
 	signal( SIGPIPE, SIG_IGN );
 
 	std::string pipeFile = "/var/run/SomeUniqueName.sock";
-	std::string pidFile = "/var/run/SocketForwarder.pid";
+	std::string pidFile;// = "/var/run/SocketForwarder.pid";
 	int port = -1;
 	bool isVerbose = false;
 	bool foregroundDaemon = false;
@@ -145,6 +198,13 @@ main( int argc, char *argv[] )
 
 			if ( subCommand.empty() )
 				usageAndExit( argv[0], "Missing sub-daemon arguments", -1 );
+
+			if ( subCommand[0][0] != '/' )
+			{
+				// if stuff isn't in the execution path, like a relative
+				// path, execvp will fail. Expand it out to a full path
+				subCommand[0] = fixPath( subCommand[0] );
+			}
 			break;
 		}
 		else if ( curarg[0] == '-' )
