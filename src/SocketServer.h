@@ -26,6 +26,7 @@
 #include <vector>
 #include <string>
 #include <deque>
+#include <memory>
 #include <sys/un.h>
 
 
@@ -97,7 +98,6 @@ private:
 	struct sockaddr_un myUnixSockAddr;
 	uint16_t myTCPPort;
 	bool myTerminated;
-	char __padding[7];
 };
 
 

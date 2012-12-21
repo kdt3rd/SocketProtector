@@ -29,6 +29,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <syslog.h>
+#include <stdexcept>
 
 
 ////////////////////////////////////////

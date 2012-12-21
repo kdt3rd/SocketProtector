@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/un.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
