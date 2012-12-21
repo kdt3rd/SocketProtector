@@ -57,7 +57,7 @@ This will keep it in the foreground and launch SampleClient and start
 listening on port 4321. At this point, in another shell, you can do
 something like:
 
-echo "Hello, World" | nn localhost 4321
+echo "Hello, World" | nc localhost 4321
 
 sending a SIGHUP signal to the daemon process will trigger it to close
 the first socket forwarding connection to indicate that the first
