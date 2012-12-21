@@ -324,7 +324,7 @@ SocketServer::sendSocket( int fd )
 		return true;
 	}
 
-	syslog( LOG_DEBUG, "Failed to send fd %d to child %d", fd, myLastPID );
+	syslog( LOG_DEBUG, "Failed to send fd %d to child %d: %s", fd, myLastPID, strerror( errno ) );
 	return false;
 }
 
