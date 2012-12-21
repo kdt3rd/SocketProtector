@@ -67,8 +67,8 @@ main( int argc, char *argv[] )
 	openlog( "sockprot_client", LOG_PID | LOG_NOWAIT | LOG_CONS | LOG_PERROR, LOG_DAEMON );
 	( void )setlogmask( LOG_UPTO( LOG_DEBUG ) );
 
-	std::cout << "Sleeping for 10 seconds..." << std::endl;
-	sleep( 10 );
+	std::cout << "Sleeping for 5 seconds to enable sending a message prior to client being ready..." << std::endl;
+	sleep( 5 );
 	std::cout << "And we're back..." << std::endl;
 	
 	SocketProtector pt( static_cast<uint16_t>( port ) );
