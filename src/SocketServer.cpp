@@ -86,7 +86,10 @@ SocketServer::terminate( void )
 	if ( ! myTerminated )
 	{
 		char b = 'x';
-		(void)write( myTriggerPipe[1], &b, sizeof(char) );
+		if ( write( myTriggerPipe[1], &b, sizeof(char) ) != 1 )
+		{
+			syslog( LOG_ERR, "Unable to write to internal communication pipe" );
+		}
 	}
 }
 
@@ -100,7 +103,10 @@ SocketServer::respawn( void )
 	if ( ! myTerminated )
 	{
 		char b = 'r';
-		(void)write( myTriggerPipe[1], &b, sizeof(char) );
+		if ( write( myTriggerPipe[1], &b, sizeof(char) ) != 1 )
+		{
+			syslog( LOG_ERR, "Unable to write to internal communication pipe" );
+		}
 	}
 }
 
@@ -114,7 +120,10 @@ SocketServer::childEvent( void )
 	if ( ! myTerminated )
 	{
 		char b = 'c';
-		(void)write( myTriggerPipe[1], &b, sizeof(char) );
+		if ( write( myTriggerPipe[1], &b, sizeof(char) ) != 1 )
+		{
+			syslog( LOG_ERR, "Unable to write to internal communication pipe" );
+		}
 	}
 }
 
@@ -455,8 +464,13 @@ SocketServer::waitForEvent( void )
 
 		if ( FD_ISSET( myTriggerPipe[0], &fds ) )
 		{
-			char b;
-			(void)read( myTriggerPipe[0], &b, sizeof(char) );
+			char b = '\0';
+			if ( read( myTriggerPipe[0], &b, sizeof(char) ) < 1 )
+			{
+				syslog( LOG_CRIT, "Attempting to read from internal communication pipe, but failed, terminating" );
+				myTerminated = true;
+			}
+
 			syslog( LOG_DEBUG, "Got notification byte '%c' on communication pipe", b );
 			switch ( b )
 			{
