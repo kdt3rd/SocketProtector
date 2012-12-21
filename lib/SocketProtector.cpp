@@ -73,7 +73,7 @@ struct SocketProtectorImpl
 		std::string pName = "sock_srv_" + std::to_string( port );
 		strncpy( local.sun_path + 1, pName.c_str(), std::min( pName.size(), sizeof(local.sun_path) - 2 ) );
 #else
-		std::string pName = "/var/run/sock_srv_" + std::to_string( port );
+		std::string pName = "/tmp/sock_srv_" + std::to_string( port );
 		strncpy( local.sun_path, pName.c_str(), std::min( pName.size(), sizeof(local.sun_path) - 1 ) );
 #endif
 #ifdef __APPLE__

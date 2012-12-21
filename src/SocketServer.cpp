@@ -614,7 +614,7 @@ SocketServer::restartUnixSocket( void )
 	std::string pName = "sock_srv_" + std::to_string( myTCPPort );
 	strncpy( myUnixSockAddr.sun_path + 1, pName.c_str(), std::min( pName.size(), sizeof(myUnixSockAddr.sun_path) - 2 ) );
 #else
-	std::string pName = "/var/run/sock_srv_" + std::to_string( myTCPPort );
+	std::string pName = "/tmp/sock_srv_" + std::to_string( myTCPPort );
 	strncpy( myUnixSockAddr.sun_path, pName.c_str(), std::min( pName.size(), sizeof(myUnixSockAddr.sun_path) - 1 ) );
 	if ( unlink( myUnixSockAddr.sun_path ) == -1 )
 	{
