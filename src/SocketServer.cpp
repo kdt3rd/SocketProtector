@@ -325,7 +325,8 @@ SocketServer::sendSocket( int fd )
 		return false;
 
 	struct msghdr msg;
-	char ccmsg[CMSG_SPACE(sizeof(fd))];
+	static const size_t ccmsgBufSz = CMSG_SPACE(sizeof(int));
+	char ccmsg[ccmsgBufSz];
 	struct cmsghdr *cmsg;
 
 	// Apparently you have to at least send 1 byte...

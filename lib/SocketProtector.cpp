@@ -81,7 +81,7 @@ struct SocketProtectorImpl
 		strncpy( local.sun_path, pName.c_str(), std::min( pName.size(), sizeof(local.sun_path) - 1 ) );
 #endif
 #ifdef __APPLE__
-		local.sun_len = static_cast<decltype(local.sun_len)>( SUN_LEN( &local ) );
+		local.sun_len = SUN_LEN( &local );
 #endif
 
 		do
@@ -182,7 +182,8 @@ struct SocketProtectorImpl
 	getSocket( void )
 	{
 		struct msghdr msg;
-		char ccmsg[CMSG_SPACE(sizeof(int))];
+		static const size_t ccmsgBufSz = CMSG_SPACE(sizeof(int));
+		char ccmsg[ccmsgBufSz];
 
 		struct iovec iov;
 		char buf[1];
