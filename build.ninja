@@ -16,6 +16,16 @@ rule exe
   command = $LD $RPATH $LDFLAGS $in -o $out $LINK $SYSLINK
   description = LINK ($out)
 
+rule inst_exe
+  command = $CP $in $out ; strip -s $out
+  description = INSTALL ($out)
+
+rule inst_oth
+  command = $CP $in $out
+  description = INSTALL ($out)
+
+PREFIX = /usr
+CP = /bin/cp
 CXXFLAGS = -fPIC -O3
 LD = /usr/bin/g++
 CC = /usr/bin/gcc
@@ -32,15 +42,22 @@ build Build/main.o: cpp src/main.cpp
 
 build Build/SocketProtector: exe Build/SocketServer.o Build/Daemon.o Build/main.o
 build SocketProtector: phony Build/SocketProtector
+default SocketProtector
 
 build Build/SocketProtector.o: cpp lib/SocketProtector.cpp
 build Build/libSocketProtector.a: lib Build/SocketProtector.o
 build libSocketProtector.a: phony Build/libSocketProtector.a
+default libSocketProtector.a
 
 build Build/sample_client.o: cpp sample/sample_client.cpp
   INC = -Ilib
 build Build/SampleClient: exe Build/sample_client.o | Build/libSocketProtector.a
   LINK = -LBuild -lSocketProtector $LINK
 build SampleClient: phony Build/SampleClient
+default SampleClient
 
-default SocketProtector libSocketProtector.a SampleClient
+build $PREFIX/bin/SocketProtector: inst_exe Build/SocketProtector
+build $PREFIX/lib/libSocketProtector.a: inst_oth Build/libSocketProtector.a
+build $PREFIX/include/SocketProtector.h: inst_oth lib/SocketProtector.h
+
+build install: phony $PREFIX/bin/SocketProtector $PREFIX/lib/libSocketProtector.a $PREFIX/include/SocketProtector.h
