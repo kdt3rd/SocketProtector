@@ -24,8 +24,31 @@ rule inst_oth
   command = $CP $in $out
   description = INSTALL ($out)
 
+rule rpmpkg
+  command = packaging/rpmbuild $VERSION $PREFIX
+  description = Building RPM
+
+rule debpkg
+  command = packaging/debbuild $VERSION $PREFIX
+  description = Building DPKG
+
+rule archpkg
+  command = packaging/archbuild $VERSION
+  description = Building Arch Package
+
+rule osxpkg
+  command = packaging/osxbuild $VERSION $PREFIX
+  description = Building OS/X Package
+
+rule doclean
+  command = $RM -rf Build
+  description = Cleaning...
+
+PKGDIR =
+VERSION = 1.0
 PREFIX = /usr
 CP = /bin/cp
+RM = /bin/rm
 CXXFLAGS = -fPIC -O3
 LD = /usr/bin/g++
 CC = /usr/bin/gcc
@@ -35,7 +58,6 @@ AR = /usr/bin/ar
 SYSLINK = -lpthread
 INC =
 
-build Build: mkdir
 build Build/Daemon.o: cpp src/Daemon.cpp
 build Build/SocketServer.o: cpp src/SocketServer.cpp
 build Build/main.o: cpp src/main.cpp
@@ -61,3 +83,11 @@ build $PREFIX/lib/libSocketProtector.a: inst_oth Build/libSocketProtector.a
 build $PREFIX/include/SocketProtector.h: inst_oth lib/SocketProtector.h
 
 build install: phony $PREFIX/bin/SocketProtector $PREFIX/lib/libSocketProtector.a $PREFIX/include/SocketProtector.h
+
+build package_deps: phony Build/SocketProtector Build/libSocketProtector.a lib/SocketProtector.h
+
+build clean: doclean
+build rpm: rpmpkg package_deps
+build deb: debpkg package_deps
+build arch: archpkg package_deps
+build osx: osxpkg package_deps

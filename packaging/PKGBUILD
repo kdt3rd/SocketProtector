@@ -1,0 +1,32 @@
+# Maintainer: Kimball Thurston <kdt3rd@gmail.com>
+
+pkgname="SocketProtector-git"
+pkgver=__VERSION__
+pkgrel=__REL__
+pkgdesc="A Lightweight Daemon allowing one to restart a network service without interruption"
+arch=('i686' 'x86_64')
+url="https://github.com/kdt3rd/SocketProtector/"
+license=('MIT')
+depends=()
+makedepends=()
+provides=('SocketProtector')
+conflicts=()
+options=()
+source=()
+
+_binrel=../..
+_gitsrc=${_binrel}/..
+
+build() {
+  ninja -C ${_gitsrc} package_deps
+}
+
+package() {
+  install -m755 -d ${pkgdir}/usr/{bin,include,lib}
+
+  install -s -m755 ${_binrel}/SocketProtector ${pkgdir}/usr/bin/
+  install -m644 ${_gitsrc}/lib/SocketProtector.h ${pkgdir}/usr/include/
+  install -m644 ${_binrel}/libSocketProtector.a ${pkgdir}/usr/lib/
+}
+
+md5sums=()
