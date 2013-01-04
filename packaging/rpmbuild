@@ -1,6 +1,15 @@
 #!/bin/bash
 
 echo Building SocketProtector RPM...
+
+git_diff_err()
+{
+  echo "SOURCE TREE IS DIRTY"
+  exit 1
+}
+
+git diff --quiet || git_diff_err
+
 GITROOT=$(git rev-parse --show-toplevel)
 cd $GITROOT
 
