@@ -1,0 +1,10 @@
+Package: socketprotector
+Version: __VERSION__-__REL__
+Maintainer: Kimball Thurston <kdt3rd@gmail.com>
+Homepage: http://kdt3rd.github.com/SocketProtector
+Section: admin
+Priority: optional
+Architecture: amd64
+Depends: libstdc++6
+Description: Socket Protector
+ A Lightweight Daemon allowing one to restart a network service without interruption
