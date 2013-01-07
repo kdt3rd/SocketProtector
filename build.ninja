@@ -87,7 +87,7 @@ build install: phony $PREFIX/bin/SocketProtector $PREFIX/lib/libSocketProtector.
 build package_deps: phony Build/SocketProtector Build/libSocketProtector.a lib/SocketProtector.h
 
 build clean: doclean
-build rpm: rpmpkg package_deps
-build deb: debpkg package_deps
-build arch: archpkg package_deps
+build rpm: rpmpkg package_deps packaging/rpmbuild packaging/SocketProtector.spec
+build deb: debpkg package_deps packaging/debbuild packaging/control
+build arch: archpkg package_deps packaging/archbuild packaging/PKGBUILD
 build osx: osxpkg package_deps
