@@ -1,6 +1,6 @@
 # Maintainer: Kimball Thurston <kdt3rd@gmail.com>
 
-pkgname="SocketProtector-git"
+pkgname="SocketProtector"
 pkgver=__VERSION__
 pkgrel=__REL__
 pkgdesc="A Lightweight Daemon allowing one to restart a network service without interruption"

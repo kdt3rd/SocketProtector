@@ -25,3 +25,5 @@ sed -e "s/__VERSION__/$VER/" -e "s/__REL__/$REL/" packaging/PKGBUILD > $TOPDIR/P
 
 cd $TOPDIR
 makepkg && echo Done
+rm -f SocketProtector-${VER}.pkg.tar.xz
+ln -s SocketProtector-${VER}-${REL}-x86_64.pkg.tar.xz SocketProtector-${VER}-x86_64.pkg.tar.xz
