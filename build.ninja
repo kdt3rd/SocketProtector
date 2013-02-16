@@ -47,6 +47,7 @@ rule doclean
 PKGDIR =
 RELEASE =
 VERSION = 1
+DIST = .el6
 ARCH = x86_64
 PREFIX = /usr
 CP = /bin/cp
@@ -91,8 +92,8 @@ build package_deps: phony Build/SocketProtector Build/libSocketProtector.a lib/S
 build Build/deb-build/socketprotector.deb: debpkg package_deps packaging/debbuild packaging/control
 build deb: phony Build/deb-build/socketprotector.deb
 
-build Build/rpm-build/SocketProtector-$VERSION$RELEASE.$ARCH.rpm: rpmpkg package_deps packaging/rpmbuild packaging/SocketProtector.spec
-build rpm: phony Build/rpm-build/SocketProtector-$VERSION$RELEASE.$ARCH.rpm
+build Build/SocketProtector-$VERSION$RELEASE$DIST.src.rpm: rpmpkg package_deps packaging/rpmbuild packaging/SocketProtector.spec
+build rpm: phony Build/SocketProtector-$VERSION$RELEASE$DIST.src.rpm
 
 build Build/arch-build/SocketProtector-$VERSION-$ARCH.pkg.tar.xz: archpkg package_deps packaging/archbuild packaging/PKGBUILD
 build arch: phony Build/arch-build/SocketProtector-$VERSION-$ARCH.pkg.tar.xz
