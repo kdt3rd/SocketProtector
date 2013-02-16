@@ -2,19 +2,11 @@
 
 echo Building Arch Package for SocketProtector...
 
-git_diff_err()
-{
-  echo "SOURCE TREE IS DIRTY"
-  exit 1
-}
-
-git diff --quiet || git_diff_err
-
 GITROOT=$(git rev-parse --show-toplevel)
 cd $GITROOT
 
 VER=$1
-REL=$(git rev-parse --short HEAD)git
+REL=$(git rev-parse --short HEAD)git$(git diff --quiet || echo "_dirty")
 TOPDIR=$GITROOT/Build/arch-build
 echo "DEST: $TOPDIR Ver: $VER, Release: $REL"
 

@@ -2,30 +2,23 @@
 
 echo Building Deb Package for SocketProtector...
 
-git_diff_err()
-{
-  echo "SOURCE TREE IS DIRTY"
-  exit 1
-}
-
-git diff --quiet || git_diff_err
-
 GITROOT=$(git rev-parse --show-toplevel)
 cd $GITROOT
 
 VER=$1
-REL=$(git rev-parse --short HEAD)git
+DESTDIR=$2
+REL=$(git rev-parse --short HEAD)git$(git diff --quiet || echo "_dirty")
 TOPDIR=$GITROOT/Build/deb-build
 
 rm -rf $TOPDIR
 mkdir -p ${TOPDIR}/socketprotector/DEBIAN
 
-mkdir -p ${TOPDIR}/socketprotector/usr/{bin,include,lib}
-cp ${GITROOT}/Build/SocketProtector ${TOPDIR}/socketprotector/usr/bin
-strip -s ${TOPDIR}/socketprotector/usr/bin/SocketProtector
+mkdir -p ${TOPDIR}/socketprotector${DESTDIR}/{bin,include,lib}
+cp ${GITROOT}/Build/SocketProtector ${TOPDIR}/socketprotector${DESTDIR}/bin
+strip -s ${TOPDIR}/socketprotector${DESTDIR}/bin/SocketProtector
 
-cp ${GITROOT}/Build/libSocketProtector.a ${TOPDIR}/socketprotector/usr/lib
-cp ${GITROOT}/lib/SocketProtector.h ${TOPDIR}/socketprotector/usr/include
+cp ${GITROOT}/Build/libSocketProtector.a ${TOPDIR}/socketprotector${DESTDIR}/lib
+cp ${GITROOT}/lib/SocketProtector.h ${TOPDIR}/socketprotector${DESTDIR}/include
 
 sed -e "s/__VERSION__/$VER/" -e "s/__REL__/$REL/" packaging/control > $TOPDIR/socketprotector/DEBIAN/control
 
