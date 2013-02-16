@@ -2,38 +2,47 @@
 
 echo Building SocketProtector RPM...
 
-git_diff_err()
-{
-  echo "SOURCE TREE IS DIRTY"
-  exit 1
-}
-
-git diff --quiet || git_diff_err
-
 GITROOT=$(git rev-parse --show-toplevel)
 cd $GITROOT
 
 VER=$1
 DESTDIR=$2
-REL=$(git rev-parse --short HEAD)git
+REL=$(git rev-parse --short HEAD)git$(git diff --quiet || echo "_dirty")
+DIST=""
+if [ -e /etc/centos-release ]; then
+	DIST=.el$(rpm -q --queryformat='%{VERSION}' centos-release)
+elif [ -e /etc/mandrake-release ]; then
+	echo "UNTESTED Release on mandrake - check what rpm defines in spec file for dist"
+	exit 1
+elif [ -e /etc/suse-release ]; then
+	echo "UNTESTED Release on SuSE - check what rpm defines in spec file for dist"
+	exit 1
+elif [ -e /etc/fedora-release ]; then
+	echo "UNTESTED Release on fedora core - check what rpm defines in spec file for dist"
+	exit 1
+else
+	DIST=.el$(rpm -q --queryformat='%{VERSION}' redhat-release)
+fi
 RPMTOPDIR=$GITROOT/Build/rpm-build
 echo "Ver: $VER, Release: $REL"
 
 # Create tarball
 mkdir -p $RPMTOPDIR/{SOURCES,SPECS}
-git archive --format=tar --prefix=SocketProtector-${VER}-${REL}/ HEAD | gzip -c > $RPMTOPDIR/SOURCES/SocketProtector-${VER}-${REL}.tar.gz
+git archive --format=tar --prefix=SocketProtector-${VER}-${REL}${DIST}/ HEAD | gzip -c > $RPMTOPDIR/SOURCES/SocketProtector-${VER}-${REL}${DIST}.tar.gz
 
 # Convert git log to RPM's ChangeLog format (shown with rpm -qp --changelog <rpm file>)
 sed -e "s/%{ver}/$VER/" -e "s/%{rel}/$REL/" packaging/SocketProtector.spec > $RPMTOPDIR/SPECS/SocketProtector.spec
 git log --format="* %cd %aN%n- (%h) %s%d%n" --date=local | sed -r 's/[0-9]+:[0-9]+:[0-9]+ //' >> $RPMTOPDIR/SPECS/SocketProtector.spec
 
 # Build SRC and binary RPMs
-rpmbuild    --quiet                       \
+cd $GITROOT/Build
+rpmbuild    -vv --quiet                       \
+            --rmsource \
             --define "_topdir $RPMTOPDIR" \
+            --define "_prefix $DESTDIR" \
             --define "_rpmdir $PWD"       \
             --define "_srcrpmdir $PWD"    \
-            --define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
             -ba $RPMTOPDIR/SPECS/SocketProtector.spec &&
 
-rm -rf $RPMTOPDIR &&
-echo Done
+rm -rf $RPMTOPDIR
+
